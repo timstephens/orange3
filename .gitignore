@@ -42,3 +42,5 @@ htmlcov/*
 
 .tox
 pip-wheel-metadata/
+
+venv/*
