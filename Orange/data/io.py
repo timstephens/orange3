@@ -405,6 +405,31 @@ class DotReader(FileFormat):
             tree = tree['tree']
         cls.write_graph(filename, tree)
 
+class LOReader(FileFormat, DataTableMixin):
+    """Read Living Optics processed hyperspectral data files"""
+    EXTENSIONS = ('.lo',)
+    DESCRIPTION = 'Living Optics processed data file'
+    SUPPORT_COMPRESSED = False
+    SUPPORT_SPARSE_DATA = True
+    
+    # We get the filename from the super when instantiated
+    def __init__(self, filename):
+        super().__init__(filename)
+        print(f"Filename to be loaded is {self.filename}")
+    
+    def read(self): #TODO: Need to check the arguments that are passed in here.
+        from lo.sdk.api.acquisition.io.open import open as lo_open
+        with lo_open(self.filename) as f:
+            (metadata, scene, spectra) = f.read()
+        print(f"Metadata = {metadata}")
+        print(f"Wavelengths are {metadata.wavelengths}")
+        #Needs to return a data_table(data, headers). Headers are the wavelength results. 
+        domain = Domain.from_numpy(spectra)
+        # Build a Domain to describe the spectra data
+        # 
+        data = Table.from_numpy(domain, spectra)
+        return(data)
+
 
 class UrlReader(FileFormat):
     def __init__(self, filename):
