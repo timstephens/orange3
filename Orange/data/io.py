@@ -417,17 +417,27 @@ class LOReader(FileFormat, DataTableMixin):
         super().__init__(filename)
         print(f"Filename to be loaded is {self.filename}")
     
-    def read(self): #TODO: Need to check the arguments that are passed in here.
+    def read(self): 
         from lo.sdk.api.acquisition.io.open import open as lo_open
         with lo_open(self.filename) as f:
             (metadata, scene, spectra) = f.read()
         print(f"Metadata = {metadata}")
         print(f"Wavelengths are {metadata.wavelengths}")
         #Needs to return a data_table(data, headers). Headers are the wavelength results. 
-        domain = Domain.from_numpy(spectra)
+        # Y = metadata.sampling_coordinates
+        # Build an array that contains the map_x, map_y 
+        # X = a = np.concatenate((spectra, metadata.sampling_coordinates), axis=1)
+        # domain = Domain.from_numpy(X)
         # Build a Domain to describe the spectra data
         # 
-        data = Table.from_numpy(domain, spectra)
+        my_domain = []
+        for w in metadata.wavelengths:
+            my_domain.append(ContinuousVariable(f"{w}"))
+        # my_domain.append(ContinuousVariable("map_x"))
+        # my_domain.append(ContinuousVariable("map_y"))
+        
+        domain = Domain(my_domain, metas=[ContinuousVariable("map_x"), ContinuousVariable("map_y")])
+        data = Table.from_numpy(domain, spectra, metas=metadata.sampling_coordinates)
         return(data)
 
 
