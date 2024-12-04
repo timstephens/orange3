@@ -406,6 +406,8 @@ class DotReader(FileFormat):
         cls.write_graph(filename, tree)
 
 class LOReader(FileFormat, DataTableMixin):
+    
+
     """Read Living Optics processed hyperspectral data files"""
     EXTENSIONS = ('.lo',)
     DESCRIPTION = 'Living Optics processed data file'
@@ -417,24 +419,44 @@ class LOReader(FileFormat, DataTableMixin):
         super().__init__(filename)
         print(f"Filename to be loaded is {self.filename}")
     
+    @property
+    #This populates a drop-down in the File widget to let you select the frame to view.
+    def sheets(self) -> List:
+        from lo.sdk.api.acquisition.io.open import open as lo_open
+        sheet_list = []
+        with lo_open(self.filename) as f:
+            if len(f) > 1: #This is a file containing more than one frame
+                for frame in f:
+                    (metadata, scene, spectra) = frame
+                    sheet_list.append(f"{metadata.timestamp_s}.{metadata.timestamp_us}")
+
+        return sheet_list
+    
+
     def read(self): 
         from lo.sdk.api.acquisition.io.open import open as lo_open
+        
+        # Accommodate .lo files where there are multiple frames:
+        # self.sheet is only set if there's >1 frame (?)
+        if self.sheet:
+            file_position = self.sheets.index(self.sheet)
+            print(f"{self.sheet}, is at {file_position}")
+            print(f"/n/n SHEETS /n{self.sheets}")
+        else:
+            file_position = 0
+
         with lo_open(self.filename) as f:
+            f.seek(file_position)
             (metadata, scene, spectra) = f.read()
         print(f"Metadata = {metadata}")
-        print(f"Wavelengths are {metadata.wavelengths}")
+        
+
         #Needs to return a data_table(data, headers). Headers are the wavelength results. 
-        # Y = metadata.sampling_coordinates
-        # Build an array that contains the map_x, map_y 
-        # X = a = np.concatenate((spectra, metadata.sampling_coordinates), axis=1)
-        # domain = Domain.from_numpy(X)
         # Build a Domain to describe the spectra data
         # 
         my_domain = []
         for w in metadata.wavelengths:
             my_domain.append(ContinuousVariable(f"{w}"))
-        # my_domain.append(ContinuousVariable("map_x"))
-        # my_domain.append(ContinuousVariable("map_y"))
         
         domain = Domain(my_domain, metas=[ContinuousVariable("map_x"), ContinuousVariable("map_y")])
         data = Table.from_numpy(domain, spectra, metas=metadata.sampling_coordinates)
