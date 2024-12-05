@@ -426,9 +426,9 @@ class LOReader(FileFormat, DataTableMixin):
         sheet_list = []
         with lo_open(self.filename) as f:
             if len(f) > 1: #This is a file containing more than one frame
-                for frame in f:
-                    (metadata, scene, spectra) = frame
-                    sheet_list.append(f"{metadata.timestamp_s}.{metadata.timestamp_us}")
+                for idx, frame in enumerate(f):
+                    (metadata, _, _) = frame
+                    sheet_list.append(f"{idx}, {metadata.timestamp_s}.{metadata.timestamp_us}")
 
         return sheet_list
     
